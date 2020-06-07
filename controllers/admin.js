@@ -13,14 +13,13 @@ exports.postAddProduct = (req, res, next) => {
     const price = req.body.price;
     const imageUrl = req.body.imageUrl;
     const description = req.body.description;
-    const product = new Product(
-        title, 
-        price, 
-        imageUrl, 
-        description, 
-        null, 
-        req.user._id
-    );
+    const product = new Product({
+        title: title, 
+        price: price, 
+        imageUrl: imageUrl, 
+        description: description,
+        userId: req.user
+    });
     product.save()
         .then(result => {
             console.log('Created Product');
@@ -57,14 +56,15 @@ exports.postEditProduct = (req, res, next) => {
     const updatedPrice = req.body.price;
     const updatedImageUrl = req.body.imageUrl;
     const updatedDesc = req.body.description;
-    const product = new Product(
-        updatedTitle, 
-        updatedPrice, 
-        updatedImageUrl, 
-        updatedDesc, 
-        prodId
-    );
-    product.save()    
+
+    Product.findById(prodId)
+        .then(product => {
+            product.title = updatedTitle;
+            product.price = updatedPrice; 
+            product.imageUrl = updatedImageUrl; 
+            product.description = updatedDesc;
+            return product.save();
+        })
         .then(result => {
             console.log('UPDATED PRODUCT!')
             res.redirect('/admin/products');
@@ -73,8 +73,11 @@ exports.postEditProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-    Product.fetchAll()
+    Product.find()
+    // .select('title price -_id')
+    // .populate('userId', 'name')
         .then(products => {
+            console.log(products)
             res.render('admin/products', {
               prods: products,
               pageTitle: 'Admin Products',
@@ -86,7 +89,7 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
     const prodId = req.body.productId;
-    Product.deleteById(prodId)
+    Product.findByIdAndRemove(prodId)
         .then(() => {
             console.log('DESTROYED PRODUCT!');
             res.redirect('/admin/products');
